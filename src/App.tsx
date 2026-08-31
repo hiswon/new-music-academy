@@ -1,5 +1,6 @@
 // src/App.tsx
 import { useState } from 'react'
+import emailjs from '@emailjs/browser' // 1. EmailJS 라이브러리 추가
 import './App.css'
 
 interface Course {
@@ -44,11 +45,41 @@ const COURSES: Course[] = [
 export default function App() {
   const [formData, setFormData] = useState({ name: '', phone: '', course: 'piano' })
   const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false) // 전송 중 로딩 상태
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.name || !formData.phone) return
-    setSubmitted(true)
+
+    setLoading(true)
+
+    // 템플릿의 변수 이름({{from_name}}, {{phone}}, {{course}})과 일치하도록 객체 생성
+    const templateParams = {
+      from_name: formData.name,
+      phone: formData.phone,
+      course: formData.course,
+    }
+
+    // 2. EmailJS 전송 함수 호출
+    emailjs
+      .send(
+        'service_0901',   // 1단계에서 얻은 Service ID로 변경
+        'template_kdkb6v5',  // 1단계에서 얻은 Template ID로 변경
+        templateParams,
+        'pEtwARYZKyMkKV6pI'    // 1단계에서 얻은 Public Key로 변경
+      )
+      .then(
+        (response) => {
+          console.log('SUCCESS!', response.status, response.text)
+          setLoading(false)
+          setSubmitted(true)
+        },
+        (err) => {
+          console.error('FAILED...', err)
+          setLoading(false)
+          alert('상담 신청 전송에 실패했습니다. 잠시 후 다시 시도해주세요.')
+        }
+      )
   }
 
   return (
@@ -142,7 +173,10 @@ export default function App() {
               <div className="success-message">
                 <h3>🎉 상담 신청이 완료되었습니다!</h3>
                 <p>담당자 확인 후 빠르게 연락드리겠습니다.</p>
-                <button onClick={() => setSubmitted(false)} className="btn btn-secondary">
+                <button
+                  onClick={() => setSubmitted(false)}
+                  className="btn btn-secondary"
+                >
                   다시 작성하기
                 </button>
               </div>
@@ -172,8 +206,12 @@ export default function App() {
                   <option value="vocal">보컬</option>
                   <option value="drum">드럼</option>
                 </select>
-                <button type="submit" className="btn btn-primary btn-full">
-                  신청하기
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-full"
+                  disabled={loading}
+                >
+                  {loading ? '전송 중...' : '신청하기'}
                 </button>
               </form>
             )}
